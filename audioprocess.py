@@ -1,3 +1,4 @@
+#Declaring all the libraries
 import wave
 import pyaudio
 import subprocess
@@ -5,9 +6,10 @@ import speech_recognition as sr
 import gpiod
 import time
 import RPi.GPIO
-
+# To handle both incoming and outgoing signals
 chip = gpiod.Chip('gpiochip4')
 
+# activating the line for red, green, and blue led.
 red_led = chip.get_line(17)
 green_led = chip.get_line(27)
 blue_led = chip.get_line(22)
@@ -16,6 +18,7 @@ red_led.request(consumer = "LED", type = gpiod.LINE_REQ_DIR_OUT)
 green_led.request(consumer = "LED", type = gpiod.LINE_REQ_DIR_OUT)
 blue_led.request(consumer = "LED", type = gpiod.LINE_REQ_DIR_OUT)
 
+# This method checks if the wanted device is connected to the raspberry pi via bluetooth
 def check_bluetooth(device_name):
 	try:
 		result = subprocess.check_output(['pactl list short sinks'], shell = True, text = True)
@@ -28,7 +31,8 @@ def check_bluetooth(device_name):
 	except Exception as e:
 		print(f"Error checking bluetooth devices: {e}")
 		return False
-		
+
+# Records audio to the passed filename for the duration of 5 seconds
 def record_audio(filename, duration = 5):
 	audio = pyaudio.PyAudio()
 	stream = audio.open(format = pyaudio.paInt16, channels= 1, rate = 44100, input=True, frames_per_buffer=1024)
@@ -52,7 +56,8 @@ def record_audio(filename, duration = 5):
 		wf.setsampwidth(audio.get_sample_size(pyaudio.paInt16))
 		wf.setframerate(44100)
 		wf.writeframes(b''.join(frames))
-	
+
+# This method converts the wav file into text file. The wav file is passed after record_audio method.
 def convert_wav_to_text(wav_file):
 	recognizer = sr.Recognizer()
 	
@@ -67,7 +72,7 @@ def convert_wav_to_text(wav_file):
 	except sr.RequestError as e:
 		return f"Could not request results from Google Speech Recognition Service, {e}"
 
-
+# Toggle LED function which called in a while loop. This function take input_text as a parameter and finds certain phrases from the input text. If those are phrase are found respective led is glown.
 def Toggle_LED(input_text):
 	if "red led on" in input_text.lower():
 		red_led.set_value(1)
@@ -90,6 +95,7 @@ def Toggle_LED(input_text):
 		blue_led.set_value(1)
 		time.sleep(1)
 	input_text = ""
+# The given input_text file is emptied after any one of the phrase is successfully captured and recognized. This is to ensure that only recent voice inputs are updated into the text. Thus, it does not consider past inputs and refreshes the string after every recording.
 
 try:
 	while True:
